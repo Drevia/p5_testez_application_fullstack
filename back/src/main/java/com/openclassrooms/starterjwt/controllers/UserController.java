@@ -40,7 +40,7 @@ public class UserController {
         }
     }
 
-    @DeleteMapping("{id}")
+    @DeleteMapping("/{id}")
     public ResponseEntity<?> save(@PathVariable("id") String id) {
         try {
             User user = this.userService.findById(Long.valueOf(id));

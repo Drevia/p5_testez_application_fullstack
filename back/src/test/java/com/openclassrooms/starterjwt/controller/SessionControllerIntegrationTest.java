@@ -1,6 +1,8 @@
 package com.openclassrooms.starterjwt.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.openclassrooms.starterjwt.models.User;
+import com.openclassrooms.starterjwt.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -32,6 +34,9 @@ public class SessionControllerIntegrationTest {
     private ObjectMapper objectMapper;
 
     private String token;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @org.junit.jupiter.api.BeforeEach
     public void setUp() throws Exception {
@@ -70,7 +75,10 @@ public class SessionControllerIntegrationTest {
 
     @Test
     public void participate_ShouldReturnOk() throws Exception {
-        mockMvc.perform(post("/api/session/1/participate/1").contentType(MediaType.APPLICATION_JSON)
+        User user = userRepository.findByEmail("test@example.com")
+                .orElseThrow(() -> new RuntimeException("User not found after authentication"));
+
+        mockMvc.perform(post("/api/session/1/participate/" + user.getId()).contentType(MediaType.APPLICATION_JSON)
             .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());
     }
