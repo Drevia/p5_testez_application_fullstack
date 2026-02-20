@@ -1,8 +1,11 @@
 package com.openclassrooms.starterjwt.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openclassrooms.starterjwt.models.User;
 import com.openclassrooms.starterjwt.repository.UserRepository;
+import com.openclassrooms.starterjwt.services.SessionService;
+import com.openclassrooms.starterjwt.testconfig.TestSecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -15,11 +18,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import com.openclassrooms.starterjwt.testconfig.TestSecurityConfig;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -37,6 +38,9 @@ public class SessionControllerIntegrationTest {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private SessionService sessionService;
 
     @org.junit.jupiter.api.BeforeEach
     public void setUp() throws Exception {
@@ -116,5 +120,39 @@ public class SessionControllerIntegrationTest {
                         .content(objectMapper.writeValueAsString(dto))
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void delete_ShouldReturnOk() throws Exception {
+        // Create a session to delete
+        Map<String, Object> dto = new HashMap<>();
+        dto.put("name", "Session To Delete");
+        dto.put("date", 1609459200000L);
+        dto.put("teacher_id", 1);
+        dto.put("description", "This session will be deleted");
+
+        String createResponse = mockMvc.perform(post("/api/session").contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(dto))
+                .header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+        // Extract the session ID from the response
+        JsonNode jsonNode = objectMapper.readTree(createResponse);
+        Long sessionId = jsonNode.get("id").asLong();
+
+        // Now delete the created session
+        mockMvc.perform(delete("/api/session/" + sessionId).contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    public void delete_NotFound() throws Exception {
+        mockMvc.perform(delete("/api/session/999").contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isNotFound());
     }
 }
